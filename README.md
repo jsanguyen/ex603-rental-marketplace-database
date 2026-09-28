@@ -26,3 +26,63 @@ For landlords and operations: which active listings have never been viewed, whic
 For data quality: are there viewings with impossible durations or future timestamps, and which renters are most active?
 
 The queries range from single-listing lookups, to grouped aggregates over cities and price bands, to window functions that rank listings within a city.
+---
+
+## Schema
+
+The full DDL is [`schema/schema.sql`](schema/schema.sql). It runs top to bottom on an empty
+PostgreSQL 14 database, and it can be re-run because it starts by dropping the tables in
+reverse order. The ERD is [`schema/erd.png`](schema/erd.png), and its Mermaid source is in
+[`schema/schema-definition.md`](schema/schema-definition.md).
+
+```sh
+createdb rental_marketplace
+psql -d rental_marketplace -v ON_ERROR_STOP=1 -f schema/schema.sql
+```
+
+### Tables
+
+Listed in creation order. Each table is created after every table it references
+([why this order](schema/creation-order.md)).
+
+| # | Table | Role | What a row is |
+|---|-------|------|---------------|
+| 1 | `renters` | actor | a platform user who books viewings |
+| 2 | `properties` | producer | a rental listing published by a landlord |
+| 3 | `amenities` | catalog | one feature from the shared list, such as Parking |
+| 4 | `viewings` | event | one completed visit by a renter to a property |
+| 5 | `listing_amenities` | junction | one amenity tagged on one listing |
+
+### Design decisions worth noticing
+
+- **History is never deleted.** Both foreign keys on `viewings` are `ON DELETE RESTRICT`,
+  so a renter or listing with viewings can't be removed. Listings leave the market with
+  `is_active = FALSE`, and a departing renter's row is anonymised. Every count and average
+  in the query set is built from `viewings`, so this keeps past numbers from changing.
+- **Tags cascade, but the amenity list doesn't.** Deleting a listing takes its
+  `listing_amenities` rows with it (`CASCADE`). Deleting an amenity that is still in use
+  fails (`RESTRICT`), so retiring "Parking" can't quietly untag every listing.
+- **Viewings are completed visits only.** `duration_min` is required and must be positive,
+  and `viewed_at` can't be in the future. Bookings and no-shows belong somewhere else.
+- **Keys.** Surrogate identity keys everywhere except the junction table, whose primary key
+  is the (`property_id`, `amenity_id`) pair. `viewing_id` is `BIGINT` because `viewings`
+  is the table that grows. A `UNIQUE` on (`renter_id`, `property_id`, `viewed_at`) stops a
+  double-submitted form from recording the same visit twice.
+- **Types.** Rent is `NUMERIC(10,2)`, never a float. ZIP codes are `VARCHAR(5)` with a
+  five-digit `CHECK`, because they are labels with leading zeros, not numbers.
+- **Nothing derived is stored.** Price bands and viewing counts are computed at query
+  time, so they can't go stale.
+- **Indexes on foreign keys.** PostgreSQL doesn't index foreign-key columns on its own, so
+  the script adds them, along with the `city` and `zipcode` columns the reports group on.
+
+The reasoning behind each `ON DELETE` choice and each `CHECK` constraint is in
+[`analysis/unit2.md`](analysis/unit2.md), and the full constraint list is in
+[`schema/constraints.md`](schema/constraints.md).
+
+### Screenshots
+
+| File | Shows |
+|------|-------|
+| [`01-reset-block-drops-tables.png`](screenshots/01-reset-block-drops-tables.png) | the reset block dropping all five tables |
+| [`02-schema-sql-runs-clean.png`](screenshots/02-schema-sql-runs-clean.png) | the whole script running with no errors: 5 drops, 5 tables and 6 indexes created |
+| [`03-tables-and-constraint-counts.png`](screenshots/03-tables-and-constraint-counts.png) | a catalog query confirming all five tables exist, with their key and `CHECK` constraint counts |
