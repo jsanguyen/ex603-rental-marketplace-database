@@ -86,3 +86,21 @@ The reasoning behind each `ON DELETE` choice and each `CHECK` constraint is in
 | [`01-reset-block-drops-tables.png`](screenshots/01-reset-block-drops-tables.png) | the reset block dropping all five tables |
 | [`02-schema-sql-runs-clean.png`](screenshots/02-schema-sql-runs-clean.png) | the whole script running with no errors: 5 drops, 5 tables and 6 indexes created |
 | [`03-tables-and-constraint-counts.png`](screenshots/03-tables-and-constraint-counts.png) | a catalog query confirming all five tables exist, with their key and `CHECK` constraint counts |
+
+---
+
+## Query catalogue
+
+Each query sits in its unit's file under a comment with its ID, the question it answers and the result it returned. A failure means a renter no-show (12 of 200 viewings) everywhere in the catalogue.
+
+### Unit 4
+
+| ID | Business question | File |
+|----|-------------------|------|
+| 4.1a | How many viewings has the platform handled, how long does a viewing last on average and how many renters are booking? Can the viewing length data be trusted? | [`q4_1.sql`](queries/unit4/q4_1.sql) |
+| 4.1b | Which properties get the most viewings and how long do renters spend at each one? | [`q4_1.sql`](queries/unit4/q4_1.sql) |
+| 4.1c | Which properties have enough viewings for their no-show rate to mean something, and what is each one's rate? | [`q4_1.sql`](queries/unit4/q4_1.sql) |
+| 4.1d | How did each city do quarter by quarter in 2023 on viewings, no-shows and viewing length? | [`q4_1.sql`](queries/unit4/q4_1.sql) |
+| 4.2a | For each property, how many viewings were booked and how many of them ended with the renter not showing up? | [`q4_2.sql`](queries/unit4/q4_2.sql) |
+| 4.2b | What is the no-show rate for each city and for the platform as a whole? | [`q4_2.sql`](queries/unit4/q4_2.sql) |
+| 4.2c | What no-show rate is normal for a busy property, so any one property can be judged against it? | [`q4_2.sql`](queries/unit4/q4_2.sql) |
